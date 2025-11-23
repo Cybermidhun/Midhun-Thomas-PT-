@@ -1,0 +1,355 @@
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button"; // shadcn/ui (available)
+import { Card, CardContent } from "@/components/ui/card";
+import { Sun, Moon, Menu, X } from "lucide-react";
+import { motion } from "framer-motion";
+
+/*
+Premium Portfolio — Single-file React app scaffold.
+
+Features:
+- Homepage with personal photo & name (editable)
+- Social links with direct navigation
+- Articles page (thumbnail, title, description)
+- Photo gallery page (Instagram-like grid with captions)
+- Admin panel for live editing and exporting configuration
+- Theme + typography customization
+- Responsive, premium/classic/modern aesthetic using Tailwind utility classes
+
+Usage:
+- Drop this file into a React + Tailwind + shadcn/ui project
+- All data is editable in the Admin panel and persisted to localStorage
+- Replace placeholder image paths with your own or upload to /public and use URLs
+*/
+
+const DEFAULT_CONFIG = {
+  owner: {
+    name: "Alexandra Monroe",
+    tagline: "Writer, Photographer & Curator",
+    profilePhoto: "/assets/profile.jpg", // replace with your path
+  },
+  social: [
+    { id: "twitter", label: "Twitter", url: "https://twitter.com/yourhandle" },
+    { id: "instagram", label: "Instagram", url: "https://instagram.com/yourhandle" },
+    { id: "linkedin", label: "LinkedIn", url: "https://linkedin.com/in/yourhandle" },
+  ],
+  articles: [
+    {
+      id: "a1",
+      title: "On Quiet Streets: An Essay",
+      description: "A reflective piece on the architecture of small towns and the stories they hold.",
+      thumbnail: "/assets/article-1.jpg",
+      published: "2024-10-01",
+      url: "#",
+    },
+    {
+      id: "a2",
+      title: "A Guide to Timeless Photography",
+      description: "Techniques and philosophy behind capturing images that feel classic and enduring.",
+      thumbnail: "/assets/article-2.jpg",
+      published: "2025-03-12",
+      url: "#",
+    },
+  ],
+  photos: [
+    { id: "p1", src: "/assets/photo1.jpg", caption: "Morning light on cobblestones." },
+    { id: "p2", src: "/assets/photo2.jpg", caption: "Quiet harbor reflections." },
+    { id: "p3", src: "/assets/photo3.jpg", caption: "Portrait — natural window light." },
+    { id: "p4", src: "/assets/photo4.jpg", caption: "Olive trees and dust." },
+  ],
+  theme: {
+    palette: {
+      accent: "#1f2937", // slate-800
+      accentMuted: "#6b7280",
+      background: "#ffffff",
+    },
+    typography: {
+      heading: "Playfair Display, serif",
+      body: "Inter, system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial",
+    },
+  },
+};
+
+function usePersistedConfig(key = "premium_portfolio_config") {
+  const [config, setConfig] = useState(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : DEFAULT_CONFIG;
+    } catch (e) {
+      console.error("Error reading config from storage", e);
+      return DEFAULT_CONFIG;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(config));
+    } catch (e) {
+      console.error("Error saving config", e);
+    }
+  }, [key, config]);
+
+  return [config, setConfig];
+}
+
+function TopNav({ ownerName, onToggleAdmin, adminOpen }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <header className="w-full border-b border-gray-200 bg-white/60 backdrop-blur sticky top-0 z-40">
+      <div className="max-w-6xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-3 no-underline">
+          <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
+            <img src="/assets/profile-thumb.jpg" alt="logo" className="w-full h-full object-cover" />
+          </div>
+          <div className="text-sm leading-tight">
+            <div className="font-medium text-slate-900">{ownerName}</div>
+            <div className="text-xs text-slate-500">Portfolio</div>
+          </div>
+        </Link>
+
+        <nav className="hidden md:flex items-center gap-6">
+          <Link to="/articles" className="text-sm hover:underline">Articles</Link>
+          <Link to="/photos" className="text-sm hover:underline">Photos</Link>
+          <button onClick={() => onToggleAdmin((s) => !s)} className="text-sm px-3 py-1 border rounded">{adminOpen ? 'Close' : 'Customize'}</button>
+        </nav>
+
+        <div className="md:hidden">
+          <button
+            onClick={() => setMenuOpen((s) => !s)}
+            className="p-2 rounded border">
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
+
+        {menuOpen && (
+          <div className="absolute right-4 top-16 bg-white shadow-lg rounded p-4 md:hidden w-44">
+            <Link to="/articles" className="block py-1">Articles</Link>
+            <Link to="/photos" className="block py-1">Photos</Link>
+            <button onClick={() => onToggleAdmin((s) => !s)} className="mt-2 w-full border rounded py-1">Customize</button>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
+
+function Home({ config, openAdmin }) {
+  const { owner, social } = config;
+  return (
+    <main className="max-w-6xl mx-auto px-6 py-12">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+        <div className="md:col-span-1 flex justify-center md:justify-start">
+          <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="w-56 h-56 md:w-64 md:h-64 rounded-2xl overflow-hidden border-2 border-gray-100 shadow-lg">
+            <img src={owner.profilePhoto} alt={owner.name} className="w-full h-full object-cover" />
+          </motion.div>
+        </div>
+        <div className="md:col-span-2">
+          <h1 className="text-4xl md:text-5xl font-extrabold" style={{ fontFamily: config.theme.typography.heading }}>{owner.name}</h1>
+          <p className="mt-3 text-lg text-slate-600 max-w-2xl" style={{ fontFamily: config.theme.typography.body }}>{owner.tagline}</p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            {social.map((s) => (
+              <a key={s.id} href={s.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-4 py-2 border rounded-md text-sm hover:shadow">{s.label}</a>
+            ))}
+          </div>
+
+          <div className="mt-8">
+            <Link to="/articles" className="inline-block text-sm underline">View articles</Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-16">
+        <Card>
+          <CardContent>
+            <h2 className="text-xl font-semibold" style={{ fontFamily: config.theme.typography.heading }}>Featured</h2>
+            <p className="mt-2 text-slate-600">A curated selection of essays, photography projects, and recent work.</p>
+          </CardContent>
+        </Card>
+      </section>
+    </main>
+  );
+}
+
+function Articles({ config }) {
+  const { articles } = config;
+  return (
+    <main className="max-w-6xl mx-auto px-6 py-12">
+      <h2 className="text-3xl font-bold mb-6">Articles</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {articles.map((a) => (
+          <article key={a.id} className="rounded-lg overflow-hidden border shadow-sm bg-white">
+            <div className="h-44 overflow-hidden">
+              <img src={a.thumbnail} alt={a.title} className="w-full h-full object-cover" />
+            </div>
+            <div className="p-4">
+              <h3 className="font-semibold text-lg">{a.title}</h3>
+              <p className="mt-2 text-sm text-slate-600">{a.description}</p>
+              <div className="mt-3 flex items-center justify-between">
+                <a href={a.url} target="_blank" rel="noreferrer" className="text-sm underline">Read</a>
+                <span className="text-xs text-slate-400">{new Date(a.published).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function Photos({ config }) {
+  const { photos } = config;
+  return (
+    <main className="max-w-6xl mx-auto px-6 py-12">
+      <h2 className="text-3xl font-bold mb-6">Photo Gallery</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {photos.map((p) => (
+          <figure key={p.id} className="rounded overflow-hidden bg-gray-50">
+            <img src={p.src} alt={p.caption} className="w-full h-48 object-cover" />
+            <figcaption className="p-2 text-sm text-slate-600">{p.caption}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function AdminPanel({ config, setConfig }) {
+  const [local, setLocal] = useState(config);
+  const navigate = useNavigate();
+
+  useEffect(() => setLocal(config), [config]);
+
+  function updateOwner(field, value) {
+    setLocal((prev) => ({ ...prev, owner: { ...prev.owner, [field]: value } }));n
+  }
+
+  function addArticle() {
+    const id = `a${Date.now()}`;
+    setLocal((p) => ({ ...p, articles: [{ id, title: "New Article", description: "Description...", thumbnail: "/assets/article-placeholder.jpg", published: new Date().toISOString().slice(0, 10), url: "#" }, ...p.articles] }));
+  }
+
+  function addPhoto() {
+    const id = `p${Date.now()}`;
+    setLocal((p) => ({ ...p, photos: [{ id, src: "/assets/photo-placeholder.jpg", caption: "New caption" }, ...p.photos] }));
+  }
+
+  function save() {
+    setConfig(local);
+    alert("Configuration saved. Changes persist in localStorage.");
+  }
+
+  function exportJSON() {
+    const blob = new Blob([JSON.stringify(local, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "portfolio-config.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function resetToDefault() {
+    if (!confirm("Reset to default demo content? This will overwrite your current configuration.")) return;
+    setLocal(DEFAULT_CONFIG);
+  }
+
+  return (
+    <aside className="fixed right-4 top-20 w-96 max-w-full bg-white border rounded-lg shadow-xl z-50 overflow-auto max-h-[75vh]">
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Customize</h3>
+          <div className="text-xs text-slate-500">Live (local)</div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-xs text-slate-600">Name</label>
+          <input value={local.owner.name} onChange={(e) => setLocal((p) => ({ ...p, owner: { ...p.owner, name: e.target.value } }))} className="w-full border rounded px-2 py-1 mt-1" />
+
+          <label className="block text-xs text-slate-600 mt-3">Tagline</label>
+          <input value={local.owner.tagline} onChange={(e) => setLocal((p) => ({ ...p, owner: { ...p.owner, tagline: e.target.value } }))} className="w-full border rounded px-2 py-1 mt-1" />
+
+          <label className="block text-xs text-slate-600 mt-3">Profile Photo URL</label>
+          <input value={local.owner.profilePhoto} onChange={(e) => setLocal((p) => ({ ...p, owner: { ...p.owner, profilePhoto: e.target.value } }))} className="w-full border rounded px-2 py-1 mt-1" />
+
+          <div className="mt-3">
+            <h4 className="font-medium">Social Links</h4>
+            {local.social.map((s, idx) => (
+              <div key={s.id} className="flex gap-2 items-center mt-2">
+                <input value={s.label} onChange={(e) => setLocal((p) => { const copy = { ...p }; copy.social[idx].label = e.target.value; return copy; })} className="flex-1 border rounded px-2 py-1" />
+                <input value={s.url} onChange={(e) => setLocal((p) => { const copy = { ...p }; copy.social[idx].url = e.target.value; return copy; })} className="flex-1 border rounded px-2 py-1" />
+              </div>
+            ))}
+            <div className="mt-2 flex gap-2">
+              <button onClick={() => setLocal((p) => ({ ...p, social: [...p.social, { id: `s${Date.now()}`, label: "New", url: "#" }] }))} className="px-3 py-1 border rounded">Add</button>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h4 className="font-medium">Articles</h4>
+            <div className="space-y-2 max-h-44 overflow-auto">
+              {local.articles.map((a, idx) => (
+                <div key={a.id} className="border rounded p-2">
+                  <input value={a.title} onChange={(e) => setLocal((p) => { const copy = { ...p }; copy.articles[idx].title = e.target.value; return copy; })} className="w-full text-sm border rounded px-2 py-1" />
+                  <input value={a.thumbnail} onChange={(e) => setLocal((p) => { const copy = { ...p }; copy.articles[idx].thumbnail = e.target.value; return copy; })} className="w-full text-xs border rounded px-2 py-1 mt-1" />
+                  <textarea value={a.description} onChange={(e) => setLocal((p) => { const copy = { ...p }; copy.articles[idx].description = e.target.value; return copy; })} className="w-full text-xs border rounded px-2 py-1 mt-1" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <button onClick={addArticle} className="px-3 py-1 border rounded">Add Article</button>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h4 className="font-medium">Photos</h4>
+            <div className="space-y-2 max-h-44 overflow-auto">
+              {local.photos.map((p, idx) => (
+                <div key={p.id} className="border rounded p-2">
+                  <input value={p.src} onChange={(e) => setLocal((c) => { const copy = { ...c }; copy.photos[idx].src = e.target.value; return copy; })} className="w-full text-xs border rounded px-2 py-1" />
+                  <input value={p.caption} onChange={(e) => setLocal((c) => { const copy = { ...c }; copy.photos[idx].caption = e.target.value; return copy; })} className="w-full text-xs border rounded px-2 py-1 mt-1" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <button onClick={addPhoto} className="px-3 py-1 border rounded">Add Photo</button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <button onClick={save} className="px-3 py-1 border rounded">Save</button>
+            <button onClick={exportJSON} className="px-3 py-1 border rounded">Export JSON</button>
+            <button onClick={resetToDefault} className="px-3 py-1 border rounded">Reset</button>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+  );
+}
+
+export default function PremiumPortfolio() {
+  const [config, setConfig] = usePersistedConfig();
+  const [adminOpen, setAdminOpen] = useState(false);
+
+  return (
+    <Router>
+      <div style={{ fontFamily: config.theme.typography.body, background: config.theme.palette.background }} className="min-h-screen text-slate-900">
+        <TopNav ownerName={config.owner.name} onToggleAdmin={setAdminOpen} adminOpen={adminOpen} />
+
+        <Routes>
+          <Route path="/" element={<Home config={config} openAdmin={() => setAdminOpen(true)} />} />
+          <Route path="/articles" element={<Articles config={config} />} />
+          <Route path="/photos" element={<Photos config={config} />} />
+        </Routes>
+
+        {adminOpen && <AdminPanel config={config} setConfig={setConfig} />}
+
+        <footer className="mt-16 border-t py-8 bg-white">
+          <div className="max-w-6xl mx-auto px-6 text-center text-sm text-slate-500">© {new Date().getFullYear()} {config.owner.name} — All rights reserved.</div>
+        </footer>
+      </div>
+    </Router>
+  );
+}
